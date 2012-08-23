@@ -1,0 +1,250 @@
+\documentclass[10pt,letterpaper]{article}
+
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{hyperref}
+\usepackage{wasysym}
+\hypersetup{breaklinks=true,pagecolor=white,colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+\usepackage{fancyvrb}
+\setcounter{secnumdepth}{5}
+\DefineVerbatimEnvironment{code}{Verbatim}{fontsize=\small}
+\DefineVerbatimEnvironment{example}{Verbatim}{fontsize=\small}
+
+\usepackage{fullpage}
+\begin{document}
+
+\title{Git Basics IMF Class 1}
+\author{Houtan Bastani\thanks{Dynare Team, CEPREMAP} \thanks{\texttt{houtan.bastani@ens.fr}}}
+\date{23 August 2012}
+\maketitle
+
+Topics addressed today will be for the general git user. We'll go over what git is, setting up your environment, accessing a repository from a server and the usual workflow that you'll follow. I hope to address the most common git commands. After this class, you should be able to handle 80\% of your interactions with git. At the beginning it'll be annoying and you'll feel like git is slowing you down. But, with time, as you become more comfortable with the idea of git and the commands listed below, you'll become more accustomed to the way git works and be able to learn more on your own.\footnote{Disclaimer: Git is a software tool to help you organize and facilitate your \textit{actual} work. No one sets out to learn git for the fun of it. To that end, I have learned the things that I need to do in order to perform my work and am by no means a git expert. Herein, I hope to share with you the things I found most important that may or may not help you, as it will depend primairly on what you need to do with git and how you work.}
+
+\section{What is Git?}
+\begin{itemize}
+  \item Git is a distributed version control system, developed by Linus Torvalds (of Linux kernel fame).
+  \begin{itemize}
+    \item \textbf{Version Control System}: Something that keeps track of the changes made to files (\texttt{commit})
+    \item \textbf{Distributed}: Everyone has a copy (\texttt{clone}) of the git repository
+    \item So, a \textbf{Distributed Version Control System} allows you to have a copy of the complete development history of the project on your local workstation (\textit{i.e.}, all changes ever made in the history of the project are in on your computer!!).
+  \end{itemize}
+  \item This means that at any moment you can go back to the state of the project as it existed at any other point in time. (\texttt{reset})
+  \item Because of the distributed nature of git (\textit{i.e.}, everyone has a repository clone on their computer), they can develop locally and, when ready, send (\texttt{push}) those changes to the global repository (\textit{i.e.}, to the server).
+\end{itemize}
+
+\section{Before You Do Anything Else}
+
+At the command prompt, set up your global git information. This will allow you to be identified by name rather than just by email. Do the following:
+
+\begin{code}
+> git config --global user.name "Your Name"
+> git config --global user.email you@imf.org
+\end{code}
+\noindent You only have to do this once on every computer that you use.
+
+\section{Cloning A Repository}
+
+When working on a project with others, you'll need to clone the global git repository. This command will copy the current state of the git repository from the server to your workstation. The repository is completely self-contained and can be copied from one directory to another and from one computer to another. As mentioned above, it contains the entire development history of the project. To get this copy of the global git repository onto your computer, do the following:
+
+\begin{code}
+> git clone <<repository.git>>
+\end{code}
+\noindent There are several different protocals that you can use to connect to a git repository (\textit{e.g.}, \texttt{http, ftp, ssh, rsync}). For example, to clone the Dynare repository, you could do:
+
+\begin{code}
+> git clone http://www.dynare.org/git/dynare.git
+> git clone ssh://yourlogin@kirikou.dynare.org/srv/d_kirikou/git/dynare.git
+\end{code}
+\noindent where \texttt{http} is open to everyone and \texttt{ssh} is available to those with access to \texttt{kirikou.dynare.org}. Of course, if you're working directly on the sevrer where the git repository lies, you can simply do:
+
+\begin{code}
+> git clone /srv/git/repoName.git
+\end{code}
+\noindent where \texttt{/srv/git/repoName.git} is the full filename of the git repository.
+
+\section{Basic Workflow}
+
+Ok, you've done it! Now you have a copy of the git repository on your computer. Now what? Well, if you're a developer, you may want to actually edit files in the repository and then share the changes you've made with the rest of the team. As this is the most common use for git, we'll focus on this as it represents the primary way you'll be using it.
+
+\subsection{Updating}
+
+\subsubsection[Branches]{Branches\footnote{This can become more complicated than the cursory/incomplete treatment I'm giving it here. If this topic becomes confusing, feel free to ignore it until you are more comfortable with the basic git commands/concepts.}}
+
+Before we can talk about updating your local repository, we should talk about the concept of branches within git. Remember, your local repository is a copy of the global repository. So, it is useful to know BOTH where the current state of the global repository is and where the current state of your local repository is. When you first clone the repository, you'll have:
+
+\begin{itemize}
+\item \texttt{origin/HEAD}: tells you the branch that's checked out by default when you clone the repository (usually it points to \texttt{origin/master})
+\item \texttt{origin/master}: indicates the main development branch of the repository
+\item \texttt{master}: is your local pointer that tracks \texttt{origin/master}. When you make changes, this pointer will advance past \texttt{origin/master}. Once your changes have been \texttt{pushed} to the global repository, \texttt{origin/master} will come into line with your local \texttt{master} branch
+\end{itemize}
+
+\noindent The command:
+\begin{code}
+> git branch
+\end{code}
+\noindent tells you which branch you're currently on. One great benefit of git is that you can have several branches, both locally and on the server. This is useful for software releases (\textit{e.g.}, at Dynare, in addition to the master branch, we have a branch for every major release) as well as just for testing ideas out locally.\footnote{We can go into branches a bit more in depth next time...(or this time if we have the time)}
+
+\subsubsection{Daily Updating Procedures}
+
+Before editing files within a repository, you should \textit{always} do the following:
+
+\begin{code}
+> git branch
+\end{code}
+\noindent to ensure you're on the \texttt{master} branch. Then,
+\begin{code}
+> git fetch
+> git rebase origin/master
+\end{code}
+\noindent where, \texttt{origin} is an alias for a \texttt{remote}\footnote{We'll talk more about remotes next time. For now, don't worry about it} and \texttt{master} is the name of a \texttt{branch}. So, what do these commands do? Well,
+\begin{itemize}
+\item \texttt{git fetch}: brings in any changes from the global git repository, updating pointers to the global branches (\textit{i.e.}, \texttt{origin/master} and \texttt{origin/HEAD})
+\item \texttt{git rebase origin/master} takes your local \texttt{master} branch pointer and places all local commits (those that have not yet been pushed to the global git repo) above the pointers to the pointers to the global branches (\textit{i.e.}, \texttt{origin/master} and \texttt{origin/HEAD})
+\end{itemize}
+With this procedure, \textit{every} developer is responsible for ensuring that their commits fit on top of the development history. This creates a \textit{clean} tree (a straight line) without unneccessary merge commits. It also forces the developer to resolve conflicts him/herself and does not rely on the handwaving that can be implicit in \texttt{git merge}. Doing this on a regular basis (once a day at least, or even as often as every email that notifies you that the repository has been updated) can save you a lot of pain and help you avoid conflicts.
+
+NB: NEVER USE \texttt{git pull}; it's a high-level command (combining \texttt{fetch} and \texttt{merge}) that does some fancy stuff. Though it'll usually work, when it doesn't it becomes unneccessarily confusing / problematic / annoying / frustrating to fix it because it takes time / git know-how to find out why. It also poses a problem when git-novices use it by creating unneccessary merge commits, making the git tree itself confusing, making it more difficult to use \texttt{git bisect}\footnote{probably won't cover this}, and making gitk\footnote{A program that shoes the editing history of a specific file} more difficult to use as well. Avoid all updating problems by simply following the procedure outlined above.\smiley
+
+\subsubsection{Helper Commands}
+
+To change your current working branch:
+\begin{code}
+> git checkout <<branch>>
+\end{code}
+
+\subsection{Committing}
+After having edited some files, you are ready to create a commit. A commit is a logical change; it can be as short as one character or as long as you want. The point is that if it were ever to be undone (\texttt{revert}ed) only that logical change should be undone. If there are more than one type of change within a commit, reverting it would undo things that you may want to keep in the repository. More than that, it helps everyone working on the project better understand exactly what was changed without being obliged to look at the code.
+
+\begin{code}
+> git add <file to be committed>
+> git commit -m "descriptive message"
+\end{code}
+
+\begin{itemize}
+\item \texttt{git add} adds an edited file to the staging area, preparing it to be commited. NB: if you modify the file after doing \texttt{git add}, you will need to \texttt{add} it again in order for those changes to be included in the commit
+\item \texttt{git commit} creates the logical commit on your current branch (\texttt{master} for now). \texttt{master} moves forward by one node, leaving \texttt{origin/master} behind. Your local repository is now ahead of the global repository. NB: A commit is denoted by an SHA.
+\end{itemize}
+
+After a commit, if you realize that you have forgotten to include a file that logically belongs there, don't worry! Just,
+\begin{code}
+> git add <file to be committed>
+> git commit --amend
+\end{code}
+\noindent to include it in the commit.
+
+\subsubsection{Helper Commands}
+
+To create a commit that undoes a previous commit (denoted by the SHA):
+\begin{code}
+> git revert <<SHA>>
+\end{code}
+
+\noindent To delete all changes and move your current branch pointer to the commit denoted by SHA:
+\begin{code}
+> git reset --hard <<SHA>>
+\end{code}
+\noindent NB: this is DANGEROUS! Use it with care not out of frustration (I speak from experience)!!
+
+\subsubsection{.gitignore}
+
+This is a file that provides git with a list of files to ignore. Basically, git knows everything that's changed within your local repository. It differentiates between files in different states:
+\begin{itemize}
+\item \textbf{Staged}: files that are ready to be committed (placed here using \texttt{git add})
+\item \textbf{Unstaged}: files that are currently tracked by git (\textit{i.e.}, have already been committed), that have been edited but NOT yet placed in the staging area
+\item \textbf{Untracked}: files in the repository that have never been committed and that are not ignored by \texttt{.gitignore}
+\end{itemize}
+\noindent Sample \texttt{.gitignore}
+\begin{code}
+*~
+*.o
+...
+\end{code}
+
+\paragraph{Helper Commands}
+
+\noindent To check which of the above three categories the edited/non-.gitignored files are:
+\begin{code}
+> git status
+\end{code}
+
+\noindent To put the tracked and edited files in a sandbox (ie WIP commit):
+\begin{code}
+> git stash
+\end{code}
+
+\subsection{Pushing}
+Well, well, well. Now you've updated your repository, committed some changes and are ready to share those changes with everyone else. Before you do so, update your repository again! Do this just to make sure that in the period between when you last updated your repository and when you want to push your changes, someone else hasn't introduced changes to the repository. Now, after doing another round of \texttt{git fetch} and \texttt{git rebase origin/master}, do:
+
+\begin{code}
+> git push
+\end{code}
+\noindent and your changes will be sent to the global repository, updating the \texttt{origin/HEAD} and \texttt{origin/master} pointers.\smiley
+
+\section{More on Branches}
+
+As mentioned above, the use (and idea of) branches can quickly become complicated. Hopefully, here, it will become a bit more understandable. In my work, as stated earlier, I have encountered two primary uses for branches: 1) software versioning, and 2) experimentation / sideline development. Let's look at the use of both of these independently.
+
+\subsection{Software Versioning}
+
+For every major Dynare release (4.0, 4.1, 4.2, etc.) we fork the master branch. The main development branch (which keeps the name \texttt{master}) always contains the unstable/development version of Dynare. On the other hand, the release branch contains a branch wherein new features will no longer be introduced. In a sense, on that branch, we freeze production and the only commits that will be added to it are either bugfixes or build system changes to prepare it for release. This branch, logically, takes a name equivalent to the relase version of the software. So, creating such a release branch would look like:
+
+\begin{code}
+> git branch 4.3
+\end{code}
+\noindent This command would create a branch with the tag \texttt{4.3}. Once this command is issued, \texttt{master, origin/master, origin/HEAD,} and \texttt{4.3} point to the same commit. Now, we may want to change the build/packaging system to prepare it for public release. To do this, we would change over to the 4.3 branch, edit the appropriate files, commit them and push the new commits (and the new branch) to the main repository:
+
+\begin{code}
+git checkout 4.3
+> git add <<file>>
+> git commit -m "message"
+> git push origin 4.3
+\end{code}
+\noindent Now, \texttt{master, origin/master} and \texttt{origin/HEAD} point to the same commit they did before. The \texttt{4.3} branch has now been pushed to the server and thus, \texttt{4.3} and the new \texttt{origin/4.3} point to the same commit containing the build system edits.
+
+As with all software, Dynare has bugs. And, after it's released to the public, those bugs are found quickly and we do our best to fix them. When we fix a bug, we fix it on the \texttt{master} branch. However, given that from time to time we provide bugfix releases of our stable versions (e.g. 4.3.1, 4.3.2, etc), we want to have those bug fixes on the stable release branch as well. In order to accomplish this, we do:
+
+\begin{code}
+> git checkout master
+> git fetch
+> git rebase origin/master
+> git add <<file>>
+> git commit -m "bugfix"
+> git checkout 4.3
+> git rebase origin/4.3
+> git cherry-pick -x master
+> git push
+\end{code}
+\noindent Here, the cherry-pick accomplishes the desired task by applying the same changes to the 4.3 branch as it did on the master branch. And, now, git push will push both master and 4.3 to the repository (since we have previously pushed 4.3 to the repo).
+
+Finally, when we want to make a bug fix public release of Dynare, we:
+\begin{code}
+> git checkout 4.3
+> git rebase fetch
+> git rebase origin/4.3
+> git tag 4.3.1
+\end{code}
+\noindent Here, we checkout the 4.3 branch, update it to make sure we have all the bugfixes that everyone may have cherry-picked onto it and then tag it with the name \texttt{4.3.1}. In this way, we always know where in the repository we have the different versions of the software that we released.
+
+\subsection{Experimentiation / Sideline Development}
+
+With software versioning, there is no intention of merging the branch back into the development branch; essentially, development on that branch dies and it remains as a record of what the software was at different points in time. On the other hand, you may need to work on a side project that may or may not eventually be included on the main development branch. In order to do this, you would follow the same process as above for creating a branch and for switching to it:
+
+\begin{code}
+> git branch myProject
+> git checkout myProject
+\end{code}
+\noindent Now, again, \texttt{myProject} becomes the active branch. You can push it to the sever (if you want others to have access to your development work) and commit to it in the same way as above.
+
+Now, when your project is complete and if you decide to include it in the main development branch, you will do the following:
+\begin{code}
+> git checkout master
+> git fetch
+> git rebase origin/master
+> git merge myProject
+> git push
+\end{code}
+\noindent This will merge the changes you made on the \texttt{myProject} branch into \texttt{origin/master}. Of course, you can encounter conflicts doing this and we can talk about this next time.
+
+
+
+\end{document}
