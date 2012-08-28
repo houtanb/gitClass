@@ -3,6 +3,7 @@
 \usepackage{amssymb}
 \usepackage{amsmath}
 \usepackage{hyperref}
+\usepackage{textcomp}
 \usepackage{wasysym}
 \hypersetup{breaklinks=true,pagecolor=white,colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
 \usepackage{fancyvrb}
@@ -13,8 +14,8 @@
 \usepackage{fullpage}
 \begin{document}
 
-\title{Git Basics IMF Class 2}
-\author{Houtan Bastani\thanks{Dynare Team, CEPREMAP} \thanks{\texttt{houtan.bastani@ens.fr}}}
+\title{Git Class 2}
+\author{Houtan Bastani\thanks{Dynare \& GPM Teams, CEPREMAP} \thanks{\texttt{houtan.bastani@ens.fr}}}
 \date{30 August 2012}
 \maketitle
 
@@ -22,20 +23,290 @@
 
 \subsection{From Nothing}
 
+\begin{code}
+> mkdir myProject
+> cd myProject
+> git init
+\end{code}
+\noindent And that's it! Now, create, add and commit files as usual.
+
 \subsection{From an Existing Directory}
+
+\begin{code}
+> cd myProject
+> git init
+\end{code}
+\noindent And that's it! Now, you'll need to add all the files that you want to have in the repository (the commit message can be something like ``initial commit'', because there's nothing to revert) and commit as usual. Of course, there's no pushing because this repository is just for you.
+
+\subsection{File Structure of Private Repo}
+
+Under the root project folder, change into the \texttt{.git} directory and take a look at what's there:
+\begin{code}
+drwxr-xr-x   2 houtan  staff    68B Aug 30 09:30 branches
+-rw-r--r--   1 houtan  staff   111B Aug 30 09:30 config
+-rw-r--r--   1 houtan  staff    73B Aug 30 09:30 description
+-rw-r--r--   1 houtan  staff    23B Aug 30 09:30 HEAD
+drwxr-xr-x  12 houtan  staff   408B Aug 30 09:30 hooks
+drwxr-xr-x   3 houtan  staff   102B Aug 30 09:30 info
+drwxr-xr-x   4 houtan  staff   136B Aug 30 09:30 objects
+drwxr-xr-x   4 houtan  staff   136B Aug 30 09:30 refs
+\end{code}
+
+\begin{itemize}
+  \item \texttt{branches} is depricated and only here for historical reasons (only used by older versions of git)
+  \item \texttt{config} lists the configuration for the git repository. Can be edited by hand or by using the \texttt{git config} command. See Section \ref{config}.
+  \item \texttt{description} only used with GitWeb (a git web interface used for browsing repositories)
+  \item \texttt{HEAD} The branch you're currently on
+  \item \texttt{hooks} Actions to take after specified git commands are executed (\textit{e.g.}, email after \texttt{git commit}). See Section \ref{hooks}.
+  \item \texttt{info} contains an \texttt{exclude} file, used the same way as \texttt{.gitignore}
+  \item \texttt{objects} contains the contents of the database (all commits)
+  \item \texttt{refs} contains pointers to data in the objects directory
+\end{itemize}
+Basically, you don't need to know much about git ``plumbing''. Everything more or less takes care of itself. However, when setting up a git repo, you'll probably want to change the configure file as well as add some hooks. I'll talk about these in the sections specified.
 
 \section{Creating a Git Repository To Share}
 
 \subsection{From Nothing On The Server}
 
+\begin{code}
+> mkdir myProject.git
+> cd myProject.git
+> git init --bare --shared=group
+\end{code}
+\noindent So, what do those flags mean? Well, the \texttt{--bare} flag indicates that we don't want to store the actual files in this repository. Remember, in the non-bare repo, all of the necessary git files were contained in the \texttt{.git} folder. Now, in the bare repository, those files will be in the root folder, as no one will actually be working directly from this repository. People will only clone, push and pull with this repo. And the \texttt{--shared=group}? That just tells git to set the permissions on the repository such that group members associated with it can read and write to it. If you wanted a more restrictive setting, you could use the typical linux octals, \textit{e.g.}, \texttt{--shared=0640} to allow group members to read but not to write, or \textit{e.g.}, \texttt{--shared=0644} to allow everyone to read but not to write. The default is \texttt{--shared=false}, which uses the default file permissions settings for the process you're using (reported by \texttt{umask} on linux/os x).
+
+
 \subsection{From an Existing Directory and Putting it on the Server}
+
+First, create a git repository as detalied above:
+\begin{code}
+> cd myProject
+> git init
+> git add .
+> git commit -m "initial commit"
+\end{code}
+
+\noindent Next, on the server, create a bare git repo:
+\begin{code}
+> mkdir myProject.git
+> cd myProject.git
+> git init --bare --shared=group
+\end{code}
+
+\noindent Now we have an empty, bare repository on the server and all the files we want to include in that repository on our computer. All we need to do now is connect the two and push the changes to the repository on the server:
+
+\begin{code}
+> git remote add origin ssh://user@server.com/path/to/myProject.git
+> git push -u origin master
+\end{code}
+This is the regular way you would push any new branch to the repository (all the \texttt{-u} switch tells git to do is to make your local \texttt{master} branch track the \texttt{origin/master} branch you just created)
+
 
 \subsection{Bare Git Repo File Structure}
 
+Is just the contents of the \texttt{.git} directory from above in the root level. Thus, the bare git repo does not contain the actual composed files but, rather, the minimum files necessary to clone a repository and recreate the files on your local machine.
+
 \section{Git Remote}
+
+In git, we use \texttt{remote}s to point to remote repositiories. Remember that git is a decentralized (distributed) version control system and, thus, every git repository is a full repository. A remote simply allows us to point to other repositories. Remote repositories should track the same \textbf{development history} as the project you're working.
+
+We use remotes for \texttt{fetch}ing and \texttt{push}ing. Thus, if we have a repository on our computer, that we don't share with anyone and that is completely self-contained (\texttt{i.e.} we won't be pulling from elsewhere), then we don't need any remote repositories. In such a repository, if we were to run \texttt{git remote -v} to list all remotes, we would have a blank list.
+
+On the other hand, in a shared repository, you will necessarily be fetching from a remote and, if you have write access, you'll be pushing too.
+
+The most common remote repository is \texttt{origin} and for the basic git setup, it's all you'll need. To add a remote named origin, we do:
+\begin{code}
+> git remote add origin ssh://user@server.com/path/to/myProject.git
+\end{code}
+\noindent using whatever protocol necessary to access the bare git repo, which will set \texttt{ssh://user@server.com/path/to/myProject.git} as both the fetch and push repo for origin. You won't usually need to do this because when you clone from a repository, it will usually be declared as \texttt{origin} by default (unless your system admin did something unusual).
+
+\noindent At Dynare, we have a layer of quality-assurance between reading and writing to a repository. So, my local git has two remotes:
+\begin{code}
+> git remote -v
+origin  ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare.git (fetch)
+origin  ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare.git (push)
+personal  ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare-houtanb.git (fetch)
+personal  ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare-houtanb.git (push)
+\end{code}
+\noindent Here, the \texttt{origin} repository has the official version of Dynare while the \texttt{personal} repository contains a repository to which I push changes I make to be reviewed by someone else (a ``gatekeeper'') before being merged into the central repository. This was setup with the following command:
+\begin{code}
+> git remote add personal ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare-houtanb.git
+\end{code}
+\noindent Of course, I could also have used the following commands:
+\begin{code}
+> git remote set-url --push origin ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare-houtanb.git
+> git remote -v
+origin  ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare.git (fetch)
+origin  ssh://houtanb@kirikou.dynare.org/srv/d_kirikou/git/dynare-houtanb.git (push)
+\end{code}
+\noindent which would have the effect of fetching from the main dynare repo and pushing to my personal dynare repo, without forcing me to specify a remote. You should do this only if you're comfortable with it. I don't do it because it adds a layer of unnecessary obfuscation.
+
+\section{Git Config}
+\label{config}
+
+There are three configuration files: project-specific (located \texttt{.git/config}, modified using \texttt{git config}), personal (located \texttt{$\sim$/.gitconfig}, modified using \texttt{git config --global}) and system-wide (varies by system, modified using\texttt{git config --system}). These files can be edited by hand or by using the \texttt{git config} command.
+
+Thus, the commands we used last time produce the following personal git config file:
+\begin{code}
+[user]
+	name = Houtan Bastani
+	email = houtan.bastani@ens.fr
+[color]
+	ui = auto
+[core]
+	editor = emacs
+\end{code}
+\noindent The \texttt{ui} line tells git that I want it to use color for all commands that support it (\textit{e.g.} \texttt{git diff}, \texttt{git status}, etc), while the \texttt{editor} line tells it what editor I prefer for editing (used by \texttt{git commit}, \texttt{git rebase -i}, etc)
+
+The Dynare project config file:
+\begin{code}
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = true
+	sharedrepository = 1
+[receive]
+	denyNonFastforwards = true
+[hooks]
+	mailinglist = commit@dynare.org
+	showrev = "git show -C %s; echo"
+	emailprefix = "[Dynare Git] "
+\end{code}
+\noindent The first three lines under core are inserted when you use the \texttt{--bare} flag when initializing a git repo. Lines 4-6 were inserted because the Dynare repo was created with \texttt{--shared=true}. The 6th line specifies that users cannot rewrite the git history (by forcing changes into the repository). As we spoke about the other day, one key characteristic of git is that it stores the entire project history. Thus, you can always ensure this is the case with \texttt{denyNonFastforwards = true}. Of course, if you want to increase the odds of shooting yourself in the foot, you should buy a gun and thus, you can set this value to false if you want to tempt fate \smiley
+
+Of course, there are many other key/value pairs (we'll talk about those \texttt{hooks} below), and you just have to look at the manual to see which ones will enable you to use git in the way you prefer.
+
+\section{Hooks}
+\label{hooks}
+
+Hooks are just shell scripts that run before and/or after certain git commands are executed. They can be set both on the client side and on the server side. Actually, when you initialize a git repository, by default you are provided with sample hooks. Listing the contents of the hooks directory of a new git repository shows the following files:
+\begin{code}
+applypatch-msg.sample     post-commit.sample        post-update.sample        pre-commit.sample         prepare-commit-msg.sample
+commit-msg.sample         post-receive.sample       pre-applypatch.sample     pre-rebase.sample         update.sample
+\end{code}
+\noindent Here, you have sample scripts that perform basic actions before/after a certain git command is issued. The names of the sample files are fairly self-descriptive as to when they act and based on what action they act. And the contents of these files provide a guide on which to build the actions of your dreams \smiley
+
+Several useful actions are:
+\begin{itemize}
+\item Send an email to everyone when the main repository is updated (indicating that they should now updated their local repositories)
+\item Enforce specific commit message format
+\item Denying forced pushes (can be set in config for git $\ge$ 1.6)
+\end{itemize}
+
+You can use any scripting language to create a hook (even Python) but many of the actions are canned and can be found online with simple google searches. Before writing your own, you should probably search for one of these first.
+
+\section{Git Interactive Rebase}
+Though the idea of git is to maintain the entire development history (and, hence, we don't want to overwrite it), as we are developing we may run into situations where we want to reorder/merge our commits. This may happen when you are working locally and, for example, you have made two bug fix commits and are about to push them to the shared repo when you notice that your first bugfix commit didn't actually fix the bug. You edit the code, commit it, but now have a tree that looks like this:
+\begin{code}
+o [master] bug fix 1 update - timestamp today 12:01 (SHA sha3)
+o bug fix 2                 - timestamp today 12:00 (SHA sha2)
+o bug fix 1                 - timestamp today 11:59 (SHA sha1)
+o [origin/master] msg       - timestamp whenever    (SHA sha0)
+\end{code}
+This, however, breaks the defining characteristic of a commit: that it reprepsents a \textbf{logical} change to the code because you have two commits that fix bug 1, whereas you should only have one commit that fixes bug 1. Before pushing to the shared repository, we can fix this issue by using an interactive rebase (command: \texttt{git rebase -i sha0} or \texttt{git rebase -i origin/master}), which will yield a screen akin to:
+\begin{code}
+pick fb65f2d bug fix 1
+pick f7f45c6 bug fix 2
+pick 853c3f0 bug fix 1 update
+
+# Rebase 81d5998..853c3f0 onto 81d5998
+#
+# Commands:
+#  p, pick = use commit
+#  r, reword = use commit, but edit the commit message
+#  e, edit = use commit, but stop for amending
+#  s, squash = use commit, but meld into previous commit
+#  f, fixup = like "squash", but discard this commit's log message
+#  x, exec = run command (the rest of the line) using shell
+#
+# If you remove a line here THAT COMMIT WILL BE LOST.
+# However, if you remove everything, the rebase will be aborted.
+#
+\end{code}
+\noindent To modify the commit history/ordering/commit messages/etc, you can then reorder the lines, delete the lines and/or modify the word \texttt{pick} according to the \texttt{Commands:} section. To accomplish what we originally wanted in this example, we would change those lines to be:
+\begin{code}
+pick fb65f2d bug fix 1
+f 853c3f0 bug fix 1 update
+pick f7f45c6 bug fix 2
+\end{code}
+
+\section{Git Merge}
+Git \texttt{merge} is a command that combines two or more development histories (branches). You can encounter it when deciding to merge some experimental branch back into the main branch, as we spoke about in the first class. Or, you might need it if you're a gatekeeper and responsible for merging developers' commits into the main git repository.
+
+To merge two branches, first checkout the branch you want to merge into, then merge in the other branch:
+\begin{code}
+> git checkout master
+> git merge development
+\end{code}
+
+Easy as that! Just, not really. If it is, breathe a sigh of releif. If it's not, well, you have some more work to do. If it doesn't go well, git will let you know with a message akin to:
+\begin{code}
+Auto-merging trash.txt
+CONFLICT (add/add): Merge conflict in trash.txt
+Automatic merge failed; fix conflicts and then commit the result.
+\end{code}
+\noindent while the file(s) with the conflicts will be marked up like:
+\begin{code}
+<<<<<<< HEAD
+My first version of trash.txt
+=======
+My second version of trash.txt
+>>>>>>> trash1
+\end{code}
+\noindent and here is where the thought comes in. You must resolve this conflict by hand because git simply cannot do it. So, you would edit this file, add it and commit it as:
+\begin{code}
+> git add trash.txt
+> git commit
+\end{code}
+\noindent git remembers that you are in the middle of a merge and will set the commit message for you, which, of course, you can edit as you please.
+
+If you find yourself in the middle of a merge that you do not want to complete, simply run either \texttt{git merge --abort} or \texttt{git reset --hard [<<SHA>>]}.
+
 
 \section{Git Submodule}
 
-\section{Git Config}
+A \texttt{submodule} is used for including a separate project within your git repository (\textit{e.g.}, a 3rd party library, Dynare, Iris, some project you're developing but using in multiple other projects, etc). It allows you to include the project within your git repository and point to a certain branch/SHA whithin that project. The idea is to keep the development histories of the host and submodule projects separated; it is thus different than a remote pointer to a repository. Further, you usually do not have write access to the repository included in the submodule. As a submodule is a complete git repository, you can view its development tree just by switching into the directory containing it.
+
+So, for example, say you're working on GIMF or GPM and want to use the unstable versions of both Dynare and Iris. Well, you can simply include them as submodules to your project and update the submodule pointers as you see fit to use the bleeding edge of those two projects.
+
+In Dynare, we use submodules to include code developed by Sims, Waggonner and Zha. To create a submodule, you would do the following:
+\begin{code}
+> git submodule add http://www.dynare.org/git/frbatlanta/utilities_dw.git contrib/ms-sbvar/utilities_dw
+\end{code}
+\noindent This will create a directory called \texttt{dynare\_root/contrib/ms-sbvar/utilities\_dw} containing the utilities\_dw.git repository. (The reason it points to a repository housed at dynare and not at the Atlanta Fed is that we have a cron job that runs every night, replicating their repositories, just for our own backup purposes. Usually, however, a submodule will point directly to the 3rd party's git repository.) This creates a new file, \texttt{.gitmodules}, located in the root directory, with the following information:
+\begin{code}
+[submodule "contrib/ms-sbvar/utilities_dw"]
+  path = contrib/ms-sbvar/utilities_dw
+  url = http://www.dynare.org/git/frbatlanta/utilities_dw.git
+\end{code}
+
+Now, the \texttt{.gitmodules} file and the \texttt{contrib/ms-sbvar/utilities\_dw} directory need to be added and committed as per usual. If you don't want to point to the \texttt{HEAD} of the submodule, you need to change into the directory, and change the current position to the SHA that corresponds to the commit you want to use (via a \texttt{git reset}).
+
+Remember, a submodule is a \textbf{complete} and \textbf{independent} git repository, so you can treat it as such. You can change into the submodule directory, view its git commit tree, modify files, push/fetch them and do basically whatever else you would do in a regular git repository. However, in your project, the only thing that is ever stored is a \textbf{pointer} to the SHA that represents the commit you want to include in your project.
+
+Finally, to clone from a repository containing submodules, all you need to do is the following:
+\begin{code}
+> git clone ssh://to/repository.git
+> cd repository
+> git submodule init
+> git submodule update
+\end{code}
+\noindent where the penultimate line initializes the submodule and the final line brings in the entire submodule repository, checking out the appropriate commit.
+
+Whenever a submodule pointer is changed, all that a user needs to do is:
+\begin{code}
+> git submodule update
+\end{code}
+\noindent which will update the pointer to the appropraite SHA.
+
+
+
+\section{Good References}
+\begin{itemize}
+\item official: \url{http://git-scm.com}
+\item man pages: \url{http://git-scm.com/docs}
+\item another: \url{http://www.kernel.org/pub/software/scm/git/docs/v1.7.3/user-manual.html}
+\item list of guis: \url{http://git-scm.com/downloads/guis}
+\end{itemize}
 
 \end{document}
